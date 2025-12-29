@@ -1,0 +1,3 @@
+%JAVA_HOME%\bin\java.exe -jar mjar.jar io/github/jsbxyyx xx-1.0.jar
+
+%JAVA_HOME%\bin\java.exe -agentpath:./libmjar.dll=io/github/jsbxyyx -jar xx-1.0-enc.jar

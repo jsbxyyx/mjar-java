@@ -36,3 +36,10 @@ build/
 
 ### Mac OS ###
 .DS_Store
+
+#
+*.jar
+*-enc.jar
+*.dll
+*.dylib
+*.so

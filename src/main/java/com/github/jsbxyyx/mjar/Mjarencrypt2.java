@@ -49,10 +49,7 @@ public class Mjarencrypt2 {
             , "(.*)?META-INF/.*\\.rsa"
             , "(.*)?META-INF/.*\\.EC"
             , "(.*)?META-INF/.*\\.ec");
-    public static final String NATIVE_DECRYPT_HELPER_CLASS = "/com/github/jsbxyyx/mjar/NativeDecryptHelper.class";
-    public static final Set<String> IGNORE_ENCRYPT_CLASS = newSet(
-            NATIVE_DECRYPT_HELPER_CLASS
-    );
+    private static final Set<String> IGNORE_ENCRYPT_CLASS = newSet();
     private static String pkg;
     private static Mjarencrypt mjarencrypt;
     private static boolean isDebug = false;
@@ -77,6 +74,9 @@ public class Mjarencrypt2 {
         String filename = file.getName().substring(0, file.getName().lastIndexOf("."));
         String jarDir = WORK_DIR + "/" + filename;
         File jarDirFile = new File(jarDir);
+        if (jarDirFile.exists()) {
+            clean(jarDirFile);
+        }
         if (!jarDirFile.exists()) {
             jarDirFile.mkdirs();
         }
@@ -93,7 +93,6 @@ public class Mjarencrypt2 {
         Map<String, byte[]> map = new LinkedHashMap<>();
         parseJar(stream, map, springboot);
         patchSpecifiedClass(map);
-        addPatchClass(map);
         writeClass(map, jarDir);
         String encFilename = WORK_DIR + "/" + filename + "-enc.jar";
         writeJar(encFilename, jarDir, manifest);
@@ -180,23 +179,6 @@ public class Mjarencrypt2 {
                 byte[] patched = patchClassReader(entry.getValue());
                 entry.setValue(patched);
             }
-        }
-    }
-
-    private static void addPatchClass(Map<String, byte[]> map) {
-        String patchClassName = NATIVE_DECRYPT_HELPER_CLASS;
-        if (map.containsKey(patchClassName)) {
-            System.out.println("NativeDecryptHelper already exists in jar, skip adding.");
-            return;
-        }
-        System.out.println("add patch class : " + patchClassName);
-        ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-        try (InputStream in = classLoader.getResourceAsStream(patchClassName.substring(1));
-             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            copy(in, out);
-            map.put(patchClassName, out.toByteArray());
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to add patch class : " + patchClassName, e);
         }
     }
 
@@ -306,9 +288,24 @@ public class Mjarencrypt2 {
 
     private static byte[] patchClassReader(byte[] original) {
         ClassReader cr = new ClassReader(original);
-        ClassWriter cw = new ClassWriter(cr, 0);
+        ClassWriter cw = new ClassWriter(cr, ClassWriter.COMPUTE_FRAMES);
 
         ClassVisitor cv = new ClassVisitor(Opcodes.ASM9, cw) {
+
+            @Override
+            public void visitEnd() {
+                // public static native byte[] maybeDecrypt(byte[] buf, int offset);
+                MethodVisitor mv = cv.visitMethod(
+                        Opcodes.ACC_PUBLIC + Opcodes.ACC_STATIC + Opcodes.ACC_NATIVE,
+                        "maybeDecrypt",
+                        "([BI)[B",
+                        null,
+                        null
+                );
+                if (mv != null) mv.visitEnd();
+                super.visitEnd();
+            }
+
             @Override
             public MethodVisitor visitMethod(int access, String name, String desc,
                                              String signature, String[] exceptions) {
@@ -323,13 +320,13 @@ public class Mjarencrypt2 {
                             // 在方法最开始插入：
                             //   aload_1
                             //   iload_2
-                            //   invokestatic NativeDecryptHelper.maybeDecrypt([BI)[B
+                            //   invokestatic ClassReader.maybeDecrypt([BI)[B
                             //   astore_1
                             mv.visitVarInsn(Opcodes.ALOAD, 1);
                             mv.visitVarInsn(Opcodes.ILOAD, 2);
                             mv.visitMethodInsn(
                                     Opcodes.INVOKESTATIC,
-                                    "com/github/jsbxyyx/mjar/NativeDecryptHelper",
+                                    "org/springframework/asm/ClassReader",
                                     "maybeDecrypt",
                                     "([BI)[B",
                                     false);

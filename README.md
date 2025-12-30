@@ -1,6 +1,6 @@
 # mjar-java
 
-中文 [英文](README_en.md)
+中文 [English](README_en.md)
 
 `mjar-java` 是 [mjar](https://github.com/jsbxyyx/mjar) 的 Java 侧配套项目，主要用于对 JAR / WAR 中的 **class 文件进行加密与字节码修改**，并通过 `libmjar` 原生库完成实际加密。
 

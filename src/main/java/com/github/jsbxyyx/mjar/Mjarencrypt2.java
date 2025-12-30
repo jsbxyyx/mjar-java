@@ -13,8 +13,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -50,6 +48,8 @@ public class Mjarencrypt2 {
             , "(.*)?META-INF/.*\\.EC"
             , "(.*)?META-INF/.*\\.ec");
     private static final Set<String> IGNORE_ENCRYPT_CLASS = newSet();
+    private static final String MAYBE_DECRYPT_METHOD_NAME = "maybeDecrypt";
+    private static final String MAYBE_DECRYPT_METHOD_DESC = "([BI)[B";
     private static String pkg;
     private static Mjarencrypt mjarencrypt;
     private static boolean isDebug = false;
@@ -173,10 +173,13 @@ public class Mjarencrypt2 {
     private static void patchSpecifiedClass(Map<String, byte[]> map) {
         for (Map.Entry<String, byte[]> entry : map.entrySet()) {
             String key = entry.getKey();
-            if (key.endsWith("org/objectweb/asm/ClassReader.class")
-                    || key.endsWith("org/springframework/asm/ClassReader.class")) {
+            if (key.endsWith("org/springframework/asm/ClassReader.class")) {
                 System.out.println("patch ClassReader : " + key);
-                byte[] patched = patchClassReader(entry.getValue());
+                byte[] patched = patchClassReader("org/springframework/asm/ClassReader", entry.getValue());
+                entry.setValue(patched);
+            } else if (key.endsWith("org/objectweb/asm/ClassReader.class")) {
+                System.out.println("patch ClassReader : " + key);
+                byte[] patched = patchClassReader("org/objectweb/asm/ClassReader", entry.getValue());
                 entry.setValue(patched);
             }
         }
@@ -213,7 +216,7 @@ public class Mjarencrypt2 {
                     parseJar(is, map, spring);
                 } else if (key.matches(MANIFEST_MF)) {
                     System.out.println("ignore : " + key);
-                } else if (anyMatchPattern(META_INF_IGNORE_LIST, key)) {
+                } else if (anyMatchesPattern(META_INF_IGNORE_LIST, key)) {
                     System.out.println("ignore : " + key);
                 } else {
                     if (isDebug) {
@@ -286,19 +289,18 @@ public class Mjarencrypt2 {
         }
     }
 
-    private static byte[] patchClassReader(byte[] original) {
+    private static byte[] patchClassReader(final String clazz, byte[] original) {
         ClassReader cr = new ClassReader(original);
         ClassWriter cw = new ClassWriter(cr, ClassWriter.COMPUTE_FRAMES);
 
         ClassVisitor cv = new ClassVisitor(Opcodes.ASM9, cw) {
-
             @Override
             public void visitEnd() {
                 // public static native byte[] maybeDecrypt(byte[] buf, int offset);
                 MethodVisitor mv = cv.visitMethod(
                         Opcodes.ACC_PUBLIC + Opcodes.ACC_STATIC + Opcodes.ACC_NATIVE,
-                        "maybeDecrypt",
-                        "([BI)[B",
+                        MAYBE_DECRYPT_METHOD_NAME,
+                        MAYBE_DECRYPT_METHOD_DESC,
                         null,
                         null
                 );
@@ -312,7 +314,7 @@ public class Mjarencrypt2 {
                 MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
                 // 找到 (byte[] classFileBuffer, int classFileOffset, boolean check) 构造
                 if ("<init>".equals(name) && "([BIZ)V".equals(desc)) {
-                    System.out.println("patched ClassReader." + name + desc);
+                    System.out.println("patched " + clazz + "." + name + desc);
                     return new MethodVisitor(api, mv) {
                         @Override
                         public void visitCode() {
@@ -326,9 +328,9 @@ public class Mjarencrypt2 {
                             mv.visitVarInsn(Opcodes.ILOAD, 2);
                             mv.visitMethodInsn(
                                     Opcodes.INVOKESTATIC,
-                                    "org/springframework/asm/ClassReader",
-                                    "maybeDecrypt",
-                                    "([BI)[B",
+                                    clazz,
+                                    MAYBE_DECRYPT_METHOD_NAME,
+                                    MAYBE_DECRYPT_METHOD_DESC,
                                     false);
                             mv.visitVarInsn(Opcodes.ASTORE, 1);
                         }
@@ -371,7 +373,7 @@ public class Mjarencrypt2 {
         return new HashSet<>();
     }
 
-    public static boolean anyMatchPattern(List<String> patterns, String str) {
+    public static boolean anyMatchesPattern(List<String> patterns, String str) {
         if (patterns.isEmpty()) {
             return false;
         }
@@ -393,25 +395,6 @@ public class Mjarencrypt2 {
             }
         }
         return false;
-    }
-
-    public static int copy(InputStream in, OutputStream out) throws IOException {
-        if (in == null) {
-            throw new NullPointerException("No InputStream specified");
-        }
-        if (out == null) {
-            throw new NullPointerException("No OutputStream specified");
-        }
-
-        int byteCount = 0;
-        byte[] buffer = new byte[4096];
-        int bytesRead;
-        while ((bytesRead = in.read(buffer)) != -1) {
-            out.write(buffer, 0, bytesRead);
-            byteCount += bytesRead;
-        }
-        out.flush();
-        return byteCount;
     }
 
 }

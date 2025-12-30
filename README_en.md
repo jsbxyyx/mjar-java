@@ -1,6 +1,6 @@
 # mjar-java
 
-[中文](README.md) 英文
+[中文](README.md) English
 
 `mjar-java` is the Java-side companion for [mjar](https://github.com/jsbxyyx/mjar).  
 It provides tools and bytecode transformers to **encrypt classes inside JAR/WAR archives**, and a small Java bridge to the native encryptor.

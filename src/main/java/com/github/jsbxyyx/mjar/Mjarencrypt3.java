@@ -10,7 +10,11 @@ public class Mjarencrypt3 {
             return;
         }
         Mjarencrypt mjarencrypt = new Mjarencrypt();
-        mjarencrypt.encrypt(args[0].getBytes(StandardCharsets.UTF_8));
+        byte[] encrypt = mjarencrypt.encrypt(args[0].getBytes(StandardCharsets.UTF_8));
+        for (int i = 0; i < encrypt.length; i++) {
+            System.out.printf("%02X", encrypt[i]);
+        }
+        System.out.println();
     }
 
 }

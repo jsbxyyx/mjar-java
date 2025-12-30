@@ -215,6 +215,6 @@ public class Mjarencrypt4 {
     }
 
     private static boolean needPatch(String className) {
-        return className.endsWith("asm/ClassReader.class");
+        return className.endsWith("/asm/ClassReader.class");
     }
 }

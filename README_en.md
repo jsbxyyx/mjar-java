@@ -10,6 +10,55 @@ It provides tools and bytecode transformers to **encrypt classes inside JAR/WAR 
 
 ---
 
+## Guide see sample.txt
+
+### Encrypt a JAR / WAR (Mjarencrypt4)
+
+`Mjarencrypt4` is a more generic transformer and prints a tree view:
+
+```bash
+java -jar mjar.jar <pkg_prefix> <source_jar_or_war> [DEBUG]
+```
+
+From `Mjarencrypt4.main`:
+
+- `args[0]` – package prefix (dot form), e.g. `com.github.jsbxyyx`
+  - will be converted to internal form `com/github/jsbxyyx`
+- `args[1]` – source JAR/WAR path
+- `args[2]` – optional `DEBUG` to enable verbose logging
+
+Output file:
+
+- For `.jar`: `<name>-enc.jar`
+- For `.war`: `<name>-enc.war`
+
+Example:
+
+```bash
+java -jar mjar.jar com.github.jsbxyyx app.jar
+```
+
+Console output (simplified):
+
+```text
+Usage: java -jar mjar.jar <pkg_prefix> <source_jar> [DEBUG]
+Processing: app.jar
+/
+├── [A] BOOT-INF/lib/...
+├── [C] com/github/jsbxyyx/service/MyService.class [E][P]
+...
+>>> Encryption Complete: /path/to/app-enc.jar
+```
+
+Legend (from `printTree`):
+
+- `[A]` – archive entry (nested JAR/WAR)
+- `[C]` – class file
+  - `[E]` – will be encrypted
+  - `[P]` – will be patched
+
+---
+
 ## Modules / Main Classes
 
 All code is under package `com.github.jsbxyyx.mjar`:
@@ -122,53 +171,6 @@ writeJar : /path/to/app-enc.jar
 clean : /path/to/app
 final filename : /path/to/app-enc.jar
 ```
-
-### 3. Encrypt a JAR / WAR (Mjarencrypt4)
-
-`Mjarencrypt4` is a more generic transformer and prints a tree view:
-
-```bash
-java -jar mjar.jar <pkg_prefix> <source_jar_or_war> [DEBUG]
-```
-
-From `Mjarencrypt4.main`:
-
-- `args[0]` – package prefix (dot form), e.g. `com.github.jsbxyyx`
-  - will be converted to internal form `com/github/jsbxyyx`
-- `args[1]` – source JAR/WAR path
-- `args[2]` – optional `DEBUG` to enable verbose logging
-
-Output file:
-
-- For `.jar`: `<name>-enc.jar`
-- For `.war`: `<name>-enc.war`
-
-Example:
-
-```bash
-java -jar mjar.jar com.github.jsbxyyx app.jar
-```
-
-Console output (simplified):
-
-```text
-Usage: java -jar mjar.jar <pkg_prefix> <source_jar> [DEBUG]
-Processing: app.jar
-/
-├── [A] BOOT-INF/lib/...
-├── [C] com/github/jsbxyyx/service/MyService.class [E][P]
-...
->>> Encryption Complete: /path/to/app-enc.jar
-```
-
-Legend (from `printTree`):
-
-- `[A]` – archive entry (nested JAR/WAR)
-- `[C]` – class file
-  - `[E]` – will be encrypted
-  - `[P]` – will be patched
-
----
 
 ## How It Works (High Level)
 

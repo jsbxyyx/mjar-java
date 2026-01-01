@@ -9,6 +9,54 @@
 
 ---
 
+## 教程 参考sample.txt
+
+### 加密 JAR / WAR（Mjarencrypt4）
+
+`Mjarencrypt4` 的入口用法在 `main` 中：
+
+```bash
+java -jar mjar.jar <pkg_prefix> <source_jar_or_war> [DEBUG]
+```
+
+参数说明：
+
+- `pkg_prefix`：包前缀，**点分形式**，例如 `com.github.jsbxyyx`  
+  程序内部会转换成 `com/github/jsbxyyx`
+- `source_jar_or_war`：源 JAR 或 WAR 路径
+- `DEBUG`（可选）：打开调试输出
+
+输出文件名规则：
+
+- 输入 `app.jar` → 输出 `app-enc.jar`
+- 输入 `app.war` → 输出 `app-enc.war`
+
+示例：
+
+```bash
+java -jar mjar.jar com.github.jsbxyyx app.jar
+```
+
+控制台会打印类似树状结构（`printTree`）：
+
+```text
+Processing: app.jar
+/
+/├── [A] BOOT-INF/lib/...
+├── [C] com/github/jsbxyyx/service/MyService.class [E][P]
+...
+>>> Encryption Complete: /path/to/app-enc.jar
+```
+
+标记含义：
+
+- `[A]`：archive（嵌套 JAR/WAR）
+- `[C]`：class 文件
+  - `[E]`：会被加密
+  - `[P]`：会被打补丁（插入 `maybeDecrypt` 等逻辑）
+
+---
+
 ## 主要类与职责
 
 包名统一为 `com.github.jsbxyyx.mjar`：
@@ -127,52 +175,6 @@ writeJar : /path/to/app-enc.jar
 clean : /path/to/app
 final filename : /path/to/app-enc.jar
 ```
-
----
-
-### 3. 加密 JAR / WAR（Mjarencrypt4）
-
-`Mjarencrypt4` 的入口用法在 `main` 中：
-
-```bash
-java -jar mjar.jar <pkg_prefix> <source_jar_or_war> [DEBUG]
-```
-
-参数说明：
-
-- `pkg_prefix`：包前缀，**点分形式**，例如 `com.github.jsbxyyx`  
-  程序内部会转换成 `com/github/jsbxyyx`
-- `source_jar_or_war`：源 JAR 或 WAR 路径
-- `DEBUG`（可选）：打开调试输出
-
-输出文件名规则：
-
-- 输入 `app.jar` → 输出 `app-enc.jar`
-- 输入 `app.war` → 输出 `app-enc.war`
-
-示例：
-
-```bash
-java -jar mjar.jar com.github.jsbxyyx app.jar
-```
-
-控制台会打印类似树状结构（`printTree`）：
-
-```text
-Processing: app.jar
-/
-/├── [A] BOOT-INF/lib/...
-├── [C] com/github/jsbxyyx/service/MyService.class [E][P]
-...
->>> Encryption Complete: /path/to/app-enc.jar
-```
-
-标记含义：
-
-- `[A]`：archive（嵌套 JAR/WAR）
-- `[C]`：class 文件
-  - `[E]`：会被加密
-  - `[P]`：会被打补丁（插入 `maybeDecrypt` 等逻辑）
 
 ---
 

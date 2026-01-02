@@ -13,6 +13,16 @@
             <artifactId>asm</artifactId>
             <version>9.7.1</version>
         </dependency>
+
+        <!--
+        <dependency>
+            <groupId>mjar</groupId>
+            <artifactId>mjar</artifactId>
+            <version>1.0</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/mjar.jar</systemPath>
+        </dependency>
+        -->
     </dependencies>
 
     <build>
